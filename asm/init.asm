@@ -1,8 +1,10 @@
 include './lib/constants.inc'
 include './lib/macros.inc'
 
-; white as second palette entry
+; black as backdrop and white as second palette entry
 mov r0, MEM_PALETTE
+mov r1, #0
+strh r1, [r0]
 add r0, #2
 mov r1, #0x7f00
 orr r1, #0x00ff
