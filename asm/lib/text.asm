@@ -7,7 +7,7 @@ include './glyphs.inc'
 
 draw_char:
         ; draw character r2 at (r0, r1) on the screen
-        stmia sp!, { r0-r7 }
+        stmdb sp!, { r0-r7 }
 
         ; find VRAM coordinate
         mov r3, SCREEN_WIDTH
@@ -27,28 +27,31 @@ draw_char:
                 ldrb r4, [r3]
                 add r3, #1
                 _draw_char_bit_loop:
+                        ; r7 holds the pixel values for 2 adjecent pixels
+                        ; we do it this way because VRAM behaves in an odd way with byte writes
                         mov r7, #0
                         movs r4, r4, lsr #1
                         orrcs r7, #0x100
                         movs r4, r4, lsr #1
                         orrcs r7, #1
 
+                        ; store the pixel values
                         strh r7, [r0]
                         sub r0, #2
                         subs r5, #2
                         bne _draw_char_bit_loop
 
-                add r0, SCREEN_WIDTH + 8  ; next scanline (correct for character x)
+                add r0, SCREEN_WIDTH + 8   ; next scanline (correct for character x)
                 subs r6, #1                ; check if we are done
                 bne _draw_char_byte_loop
 
-        ldmdb sp!, { r0-r7 }
+        ldmia sp!, { r0-r7 }
         bx lr
 
 draw_word:
         ; draw word at memory location r2 of length r3 > 0 at (r0, r1)
 
-        stmia sp!, { r0-r4, lr }
+        stmdb sp!, { r0-r4, lr }
 
         mov r4, r2
         _draw_word_char_loop:
@@ -62,13 +65,13 @@ draw_word:
                 subs r3, #1   ; decrement counter
                 bne _draw_word_char_loop
 
-        ldmdb sp!, { r0-r4, lr }
+        ldmia sp!, { r0-r4, lr }
         bx lr
 
 draw_hex_value:
         ; draw hex value r2 at (r0, r1)
 
-        stmia sp!, { r0-r4, lr }
+        stmdb sp!, { r0-r4, lr }
         mov r3, #8
         mov r4, r2
         _draw_hex_value_loop:
@@ -86,7 +89,7 @@ draw_hex_value:
                 subs r3, #1   ; decrement counter
                 bne _draw_hex_value_loop
 
-        ldmdb sp!, { r0-r4, lr }
+        ldmia sp!, { r0-r4, lr }
         bx lr
 
 

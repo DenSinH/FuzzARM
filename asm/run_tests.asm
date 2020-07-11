@@ -16,7 +16,7 @@ include './tests.inc'
 
 align 4
 run_tests:
-        stmia sp!, { r0-r12, lr }
+        stmdb sp!, { r0-r12, lr }
 
         ; init test counter and test
         set_word r11, MEM_ROM + tests
@@ -59,7 +59,7 @@ run_tests:
                 mov r3, #16
                 bl draw_word
 
-                ldmdb sp!, { r0-r12, lr }
+                ldmia sp!, { r0-r12, lr }
                 bx lr
 
 _finished_tests_text:
@@ -181,15 +181,15 @@ _test_check:
 
 _test_error:
         ; r11 still contains the CPSR we got
-        stmia sp!, { lr }
-        stmia sp!, { r7 }
-        stmia sp!, { r6 }
-        stmia sp!, { r5 }
-        stmia sp!, { r4 }
-        stmia sp!, { r3 }
-        stmia sp!, { r2 }
-        stmia sp!, { r1 }
-        stmia sp!, { r0 }
+        stmdb sp!, { lr }
+        stmdb sp!, { r7 }
+        stmdb sp!, { r6 }
+        stmdb sp!, { r5 }
+        stmdb sp!, { r4 }
+        stmdb sp!, { r3 }
+        stmdb sp!, { r2 }
+        stmdb sp!, { r1 }
+        stmdb sp!, { r0 }
         ; draw 'Failed test':
         mov r0, #0
         mov r1, #0
@@ -247,7 +247,7 @@ _test_error:
                 mov r2, r4
                 bl draw_char
                 add r0, #32
-                ldmdb sp!, { r2 }
+                ldmia sp!, { r2 }
                 bl draw_hex_value
                 add r4, #1
                 cmp r4, '2'
@@ -282,7 +282,7 @@ _test_error:
                 mov r2, r4
                 bl draw_char
                 add r0, #32
-                ldmdb sp!, { r2 }
+                ldmia sp!, { r2 }
                 bl draw_hex_value
                 add r4, #1
                 cmp r4, '4'
@@ -317,7 +317,7 @@ _test_error:
                 mov r2, r4
                 bl draw_char
                 add r0, #32
-                ldmdb sp!, { r2 }
+                ldmia sp!, { r2 }
                 bl draw_hex_value
                 add r4, #1
                 cmp r4, '4'
@@ -331,7 +331,7 @@ _test_error:
         bl draw_word
 
         add r0, #5 * 8
-        ldmdb sp!, { r2 }
+        ldmia sp!, { r2 }
         bl draw_hex_value
 
         set_word r0, KEYINPUT
@@ -348,7 +348,7 @@ _test_error:
                 cmp r1, #0xff
                 beq wait_until_keys_up
 
-        ldmdb sp!, { lr }
+        ldmia sp!, { lr }
         bx lr
 
 _failed_text:
