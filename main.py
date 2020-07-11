@@ -18,9 +18,9 @@ with open("./asm/tests.inc", "w+") as f:
 
 executable = {
     "win32": "FASMARM.EXE",
-    "linux": "fasmarm.o",
-    "linux2": "fasmarm.o",
-    "darwin": "fasmarm"
+    "linux": "fasmarm",
+    "linux2": "fasmarm",
+    "darwin": "fasmarm.o"
 }
 
 if sys.platform not in executable:
