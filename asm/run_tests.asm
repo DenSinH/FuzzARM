@@ -23,6 +23,12 @@ run_tests:
         ldmia r11!, { r12 }
 
         _run_tests_loop:
+                ; report test number
+                mov r0, #0
+                mov r1, #0
+                mov r2, r12
+                bl draw_hex_value
+
                 ; load test values
                 ldmia r11!, { r0, r1, r5, r6, r7 }
                 mov r10, #0xff
@@ -47,8 +53,17 @@ run_tests:
                 bne _run_tests_loop
 
         _run_tests_return:
+                mov r0, #0
+                mov r1, #0
+                set_word r2, MEM_ROM + _finished_tests_text
+                mov r3, #16
+                bl draw_word
+
                 ldmdb sp!, { r0-r12, lr }
                 bx lr
+
+_finished_tests_text:
+        dw 'End ', 'of t', 'esti', 'ng  '
 
 _run_tests_single:
 _shift_operand:
@@ -67,16 +82,16 @@ _shift_operand:
 
 
         _shift_lsl:
-                mov r3, r1, lsl r2
+                movs r3, r1, lsl r2
                 b _do_operation
         _shift_lsr:
-                mov r3, r1, lsr r2
+                movs r3, r1, lsr r2
                 b _do_operation
         _shift_asr:
-                mov r3, r1, asr r2
+                movs r3, r1, asr r2
                 b _do_operation
         _shift_ror:
-                mov r3, r1, ror r2
+                movs r3, r1, ror r2
                 b _do_operation
 
 _do_operation:
@@ -99,49 +114,49 @@ _do_operation:
 
 
         _opcode_and:
-                ands r4, r1, r3
+                ands r4, r0, r3
                 b _test_check
         _opcode_eor:
-                eors r4, r1, r3
+                eors r4, r0, r3
                 b _test_check
         _opcode_sub:
-                subs r4, r1, r3
+                subs r4, r0, r3
                 b _test_check
         _opcode_rsb:
-                rsbs r4, r1, r3
+                rsbs r4, r0, r3
                 b _test_check
         _opcode_add:
-                adds r4, r1, r3
+                adds r4, r0, r3
                 b _test_check
         _opcode_adc:
-                adcs r4, r1, r3
+                adcs r4, r0, r3
                 b _test_check
         _opcode_sbc:
-                sbcs r4, r1, r3
+                sbcs r4, r0, r3
                 b _test_check
         _opcode_rsc:
-                rscs r4, r1, r3
+                rscs r4, r0, r3
                 b _test_check
         _opcode_tst:
-                tst r1, r3
+                tst r0, r3
                 b _test_check
         _opcode_teq:
-                teq r1, r3
+                teq r0, r3
                 b _test_check
         _opcode_cmp:
-                cmp r1, r3
+                cmp r0, r3
                 b _test_check
         _opcode_cmn:
-                cmn r1, r3
+                cmn r0, r3
                 b _test_check
         _opcode_orr:
-                orrs r4, r1, r3
+                orrs r4, r0, r3
                 b _test_check
         _opcode_mov:
                 movs r4, r3
                 b _test_check
         _opcode_bic:
-                bics r4, r1, r3
+                bics r4, r0, r3
                 b _test_check
         _opcode_mvn:
                 mvns r4, r3
@@ -197,7 +212,6 @@ _test_error:
         cmp r4, #0x8
 
         addeq r2, #4
-        subeq r3, #4
         bl draw_word
 
         ; draw shift type
@@ -226,7 +240,7 @@ _test_error:
         mov r4, '0'
         _input_loop:
                 add r1, #8
-                mov r0, #0
+                mov r0, #16
                 mov r2, 'r'
                 bl draw_char
                 add r0, #8
@@ -241,7 +255,7 @@ _test_error:
 
         ; draw input CPSR
         add r1, #8
-        mov r0, #0
+        mov r0, #16
         set_word r2, MEM_ROM + _cpsr_text
         mov r3, #4
         bl draw_word
@@ -261,7 +275,7 @@ _test_error:
         mov r4, '3'
         _got_loop:
                 add r1, #8
-                mov r0, #0
+                mov r0, #16
                 mov r2, 'r'
                 bl draw_char
                 add r0, #8
@@ -276,7 +290,7 @@ _test_error:
 
         ; draw gotten CPSR
         add r1, #8
-        mov r0, #0
+        mov r0, #16
         set_word r2, MEM_ROM + _cpsr_text
         mov r3, #4
         bl draw_word
@@ -296,7 +310,7 @@ _test_error:
         mov r4, '3'
         _expected_loop:
                 add r1, #8
-                mov r0, #0
+                mov r0, #16
                 mov r2, 'r'
                 bl draw_char
                 add r0, #8
@@ -320,6 +334,20 @@ _test_error:
         ldmdb sp!, { r2 }
         bl draw_hex_value
 
+        set_word r0, KEYINPUT
+
+        wait_until_keys_up:
+                ldr r1, [r0]
+                and r1, #0xff
+                cmp r1, #0xff
+                bne wait_until_keys_up
+
+        wait_until_key_down:
+                ldr r1, [r0]
+                and r1, #0xff
+                cmp r1, #0xff
+                beq wait_until_keys_up
+
         ldmdb sp!, { lr }
         bx lr
 
@@ -333,7 +361,7 @@ _opcode_text:
         dw 'orr ', 'mov ', 'bic ', 'mvn '
 
 _op_text:
-        dw 'r4, ', 'r0, ', 'r1  '
+        dw 'r4, ', 'r0, ', 'r1  ', '    '
 
 _shift_text:
         dw 'lsl ', 'lsr ', 'asr ', 'ror '

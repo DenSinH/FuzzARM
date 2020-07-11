@@ -4,8 +4,17 @@ import subprocess as sp
 from pathlib import Path
 import sys
 
+
+while True:
+    try:
+        number_of_tests = int(input("Number of tests: "))
+        break
+    except ValueError:
+        print("Please enter a valid number")
+
+
 with open("./asm/tests.inc", "w+") as f:
-    f.write(generate(100))
+    f.write(generate(number_of_tests))
 
 executable = {
     "win32": "FASMARM.EXE",

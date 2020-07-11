@@ -1,14 +1,16 @@
 import numpy as np
 
+np.seterr(all="ignore")
+
 
 def get_CV_add(Op1, Op2, Result):
-    C = 1 if (Op1 + Op2 > 0xffff_ffff) else 0
+    C = 1 if (int(Op1) + int(Op2) > 0xffff_ffff) else 0
     V = (((Op1 ^ Result) & (~Op1 ^ Op2)) >> 31)
     return C, V
 
 
-def get_CV_add_C(Op1, Op2, oldC, Result):
-    C = 1 if (Op1 + Op2 + oldC> 0xffff_ffff) else 0
+def get_CV_add_C(Op1, Op2, C, Result):
+    C = 1 if (int(Op1) + int(Op2) + C> 0xffff_ffff) else 0
     V = (((Op1 ^ Result) & (~Op1 ^ Op2)) >> 31)
     return C, V
 
@@ -19,8 +21,8 @@ def get_CV_sub(Op1, Op2, Result):
     return C, V
 
 
-def get_CV_sub_C(Op1, Op2, oldC, Result):
-    C = 1 if (Op2 + 1 - oldC <= Op1) else 0
+def get_CV_sub_C(Op1, Op2, C, Result):
+    C = 1 if (int(Op2) + 1 - C <= Op1) else 0
     V = (((Op1 ^ Op2) & (~Op2 ^ Result)) >> 31)
     return C, V
 
@@ -35,14 +37,14 @@ def DataProcessing(opcode: int, r0: int, r1: int, r2: int, shift_type: int, N, Z
     :return:
     """
     registers = np.array([r0, r1, r2, 0, 0], dtype=np.uint32)
-    oldC = C
 
     # r3 = mov r1, shift_type, #r2
     if registers[2] != 0:
         if shift_type == 0b00:
             """  LSL  """
             if registers[2] > 32:
-                pass
+                C = 0
+                registers[3] = 0
             elif registers[2] == 32:
                 C = registers[1] & 0x1
             else:
@@ -51,7 +53,8 @@ def DataProcessing(opcode: int, r0: int, r1: int, r2: int, shift_type: int, N, Z
         elif shift_type == 0b01:
             """  LSR  """
             if registers[2] > 32:
-                pass
+                C = 0
+                registers[3] = 0
             elif registers[2] == 32:
                 C = (registers[1] >> 31) & 0x1
             else:
@@ -68,53 +71,62 @@ def DataProcessing(opcode: int, r0: int, r1: int, r2: int, shift_type: int, N, Z
         elif shift_type == 0b11:
             """  ROR  """
             shift_amount = registers[2] & 0x1f
-            C = (registers[1] >> (shift_amount - 1)) & 0x01
-            registers[3] = ((registers[1] >> shift_amount) | ((registers[1] & ((1 << shift_amount) - 1)) << (32 - shift_amount)))
+            if shift_amount != 0:
+                C = (registers[1] >> (shift_amount - 1)) & 0x01
+                registers[3] = ((registers[1] >> shift_amount) | ((registers[1] & ((1 << shift_amount) - 1)) << (32 - shift_amount)))
+            else:
+                C = 1 if (registers[1] & 0x8000_0000) != 0 else 0
+                registers[3] = registers[1]
         else:
             raise Exception()
     else:
         # no special case shifting with register specified shift amount
         registers[3] = registers[1]
 
-    if opcode == 0b0000:
+    """
+    Note: for ADC/SBC/RSC instructions, normally you would take the initial value of C, but because of the way
+    I implemented the testing in the asm rom, the new value of C will be used
+    """
+
+    if opcode == 0b0000:        # AND
         result = registers[4] = registers[0] & registers[3]
-    elif opcode == 0b0001:
+    elif opcode == 0b0001:      # EOR
         result = registers[4] = registers[0] ^ registers[3]
-    elif opcode == 0b0010:
+    elif opcode == 0b0010:      # SUB
         result = registers[4] = registers[0] - registers[3]
         C, V = get_CV_sub(registers[0], registers[3], registers[4])
-    elif opcode == 0b0011:
+    elif opcode == 0b0011:      # RSB
         result = registers[4] = registers[3] - registers[0]
         C, V = get_CV_sub(registers[3], registers[0], registers[4])
-    elif opcode == 0b0100:
+    elif opcode == 0b0100:      # ADD
         result = registers[4] = registers[0] + registers[3]
         C, V = get_CV_add(registers[0], registers[3], registers[4])
-    elif opcode == 0b0101:
-        result = registers[4] = np.uint32(registers[0] + registers[3] + oldC)
-        C, V = get_CV_add_C(registers[0], registers[3], oldC, registers[4])
-    elif opcode == 0b0110:
-        result = registers[4] = np.uint32(registers[0] - (registers[3] + 1 - oldC))
-        C, V = get_CV_sub_C(registers[0], registers[3], oldC, registers[4])
-    elif opcode == 0b0111:
-        result = registers[4] = np.uint32(registers[3] - (registers[0] + 1 - oldC))
-        C, V = get_CV_sub_C(registers[3], registers[0], oldC, registers[4])
-    elif opcode == 0b1000:
+    elif opcode == 0b0101:      # ADC
+        result = registers[4] = np.uint32(registers[0] + registers[3] + C)
+        C, V = get_CV_add_C(registers[0], registers[3], C, registers[4])
+    elif opcode == 0b0110:      # SBC
+        result = registers[4] = np.uint32(registers[0] - (registers[3] + 1 - C))
+        C, V = get_CV_sub_C(registers[0], registers[3], C, registers[4])
+    elif opcode == 0b0111:      # RSC
+        result = registers[4] = np.uint32(registers[3] - (registers[0] + 1 - C))
+        C, V = get_CV_sub_C(registers[3], registers[0], C, registers[4])
+    elif opcode == 0b1000:      # TST
         result = np.uint32(registers[0] & registers[3])
-    elif opcode == 0b1001:
+    elif opcode == 0b1001:      # TEQ
         result = np.uint32(registers[0] ^ registers[3])
-    elif opcode == 0b1010:
+    elif opcode == 0b1010:      # CMP
         result = np.uint32(registers[0] - registers[3])
         C, V = get_CV_sub(registers[0], registers[3], result)
-    elif opcode == 0b1011:
+    elif opcode == 0b1011:      # CMN
         result = np.uint32(registers[0] + registers[3])
         C, V = get_CV_add(registers[0], registers[3], result)
-    elif opcode == 0b1100:
+    elif opcode == 0b1100:      # ORR
         result = registers[4] = np.uint32(registers[0] | registers[3])
-    elif opcode == 0b1101:
+    elif opcode == 0b1101:      # MOV
         result = registers[4] = registers[3]
-    elif opcode == 0b1110:
+    elif opcode == 0b1110:      # BIC
         result = registers[4] = np.uint32(registers[0] & ~registers[3])
-    elif opcode == 0b1111:
+    elif opcode == 0b1111:      # MVN
         result = registers[4] = ~registers[3]
     else:
         raise Exception()
@@ -127,4 +139,12 @@ def DataProcessing(opcode: int, r0: int, r1: int, r2: int, shift_type: int, N, Z
     # Op2 (shifted), result, status codes
     return registers[3], registers[4], CPSR_flags
 
+
+if __name__ == '__main__':
+    r0 = 0x857370AA
+    r1 = 0xF69CEA3A
+    r2 = 0x00000020
+
+    r3, r4, CPSR_flags = DataProcessing(0b0111, r0, r1, r2, 3, 1, 0, 1, 1)
+    print(hex(r3), hex(r4), hex(CPSR_flags))
 
