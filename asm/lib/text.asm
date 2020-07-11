@@ -10,8 +10,12 @@ draw_char:
         stmdb sp!, { r0-r7 }
 
         ; find VRAM coordinate
-        mov r3, SCREEN_WIDTH
-        mla r0, r1, r3, r0
+        mov r1, r1, lsl #8
+        sub r1, r1, lsr #4
+        add r0, r1
+
+        ; mov r3, SCREEN_WIDTH
+        ; mla r0, r1, r3, r0
         add r0, MEM_VRAM
         add r0, #8
 

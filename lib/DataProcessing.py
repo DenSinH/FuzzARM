@@ -29,11 +29,12 @@ def get_CV_sub_C(Op1, Op2, C, Result):
 
 def DataProcessing(opcode: int, r0: int, r1: int, r2: int, shift_type: int, N, Z, C, V):
     """
-    :param opcode:      opcode for dataprocessing instruction (0 <= opcode < 32)
+    :param opcode:      opcode for dataprocessing instruction (0 <= opcode < 16)
     :param r0:          first operand
     :param r1:          second operand
     :param r2:          shift amount
     :param: shift_type: shift type for second operand (LSL, LSR, ASR, ROR)
+    :param: N, Z, C, V: initial CPSR flags
     :return:
     """
     registers = np.array([r0, r1, r2, 0, 0], dtype=np.uint32)

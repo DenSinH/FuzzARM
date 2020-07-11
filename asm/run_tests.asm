@@ -15,6 +15,7 @@ include './tests.inc'
 ;        r12    : test counter
 
 align 4
+code32
 run_tests:
         stmdb sp!, { r0-r12, lr }
 
@@ -32,23 +33,25 @@ run_tests:
                 ; load test values
                 ldmia r11!, { r0, r1, r5, r6, r7 }
                 mov r10, #0xff
-                and r2, r10, r7, lsr #16  ; shift amount
+
+                and r2, r10, r7, lsr #8   ; shift amount
                 mov r3, #0
                 mov r4, #0
-                and r8, r10, r7, lsr #8   ; shift type
+                and r8, r10, r7, lsr #16  ; shift type
                 and r9, r10, r7           ; opcode
-
-                ; initialize CPSR for test
                 and r10, r7, #0xf0000000
-                msr CPSR_flg, r10
+
+                ; in case of multiply instruction
+                cmp r9, #16
+                orrge r2, r2, r8, lsl #24
 
                 ; initialize expected CPSR for test
                 and r7, #0x0f000000
                 mov r7, r7, lsl #4
 
-                stmia sp!, { r11, r12 }
+                stmdb sp!, { r11, r12 }
                 bl _run_tests_single
-                ldmdb sp!, { r11, r12 }
+                ldmia sp!, { r11, r12 }
                 subs r12, #1
                 bne _run_tests_loop
 
@@ -66,11 +69,18 @@ _finished_tests_text:
         dw 'End ', 'of t', 'esti', 'ng  '
 
 _run_tests_single:
+        ; no shift for multiply instructions
+        cmp r9, #16
+        bge _do_operation_mul
+
 _shift_operand:
         ; shift operand into r3
         set_word r11, MEM_ROM + _shift_switch
         add r11, r8, lsl #2
         ldr r11, [r11]
+
+        ; initialize CPSR for test
+        msr CPSR_flg, r10
 
         bx r11
 
@@ -94,6 +104,10 @@ _shift_operand:
                 movs r3, r1, ror r2
                 b _do_operation
 
+_do_operation_mul:
+        ; initialize CPSR for mul test
+        msr CPSR_flg, r10
+
 _do_operation:
         ; execute operation
         set_word r11, MEM_ROM + _opcode_switch
@@ -111,6 +125,9 @@ _do_operation:
                 dw MEM_ROM + _opcode_cmp, MEM_ROM + _opcode_cmn
                 dw MEM_ROM + _opcode_orr, MEM_ROM + _opcode_mov
                 dw MEM_ROM + _opcode_bic, MEM_ROM + _opcode_mvn
+                dw MEM_ROM + _opcode_mul, MEM_ROM + _opcode_mla
+                dw MEM_ROM + _opcode_umull, MEM_ROM + _opcode_umlal
+                dw MEM_ROM + _opcode_smull, MEM_ROM + _opcode_smlal
 
 
         _opcode_and:
@@ -161,11 +178,35 @@ _do_operation:
         _opcode_mvn:
                 mvns r4, r3
                 b _test_check
+        _opcode_mul:
+                muls r3, r0, r1
+                b _test_check
+        _opcode_mla:
+                mlas r3, r0, r1, r2
+                b _test_check
+        _opcode_umull:
+                umulls r4, r3, r0, r1
+                b _test_check
+        _opcode_umlal:
+                ; accumulation actually does not do anything in this case
+                umlals r4, r3, r0, r1
+                b _test_check
+        _opcode_smull:
+                smulls r4, r3, r0, r1
+                b _test_check
+        _opcode_smlal:
+                ; accumulation actually does not do anything in this case
+                smlals r4, r3, r0, r1
+                b _test_check
 
 _test_check:
         ; get CPSR flags
         mrs r11, CPSR
         and r11, #0xf0000000
+        ; C flag is garbage for multiply instructions
+        cmp r9, #16
+        andge r11, #0xd0000000
+
 
         ; compare gotten vs expected
         cmp r3, r5
@@ -200,21 +241,47 @@ _test_error:
         ; draw opcode
         add r1, #8
         set_word r2, MEM_ROM + _opcode_text
+        mov r3, #4
         add r2, r9, lsl #2
         bl draw_word
 
-        ; draw operands
         add r0, #8 * 4
+
+        ; for multiply long instructions, the opcode is longer
+        cmp r9, #18
+        movge r2, 'l'
+        blge draw_char
+        cmp r9, #18
+        addge r0, #2 * 8
+
+        ; draw operands
         set_word r2, MEM_ROM + _op_text
-        mov r3, #12
+        mov r3, #10
         ; some opcodes don't have a destination register
         and r4, r9, #0xc
         cmp r4, #0x8
-
         addeq r2, #4
+
+        ; multiply opcodes have different operands
+        cmp r9, #16
+        addge r2, #4 * 4
+
+        ; accumulate multiplies have an extra operand
+        tstgt r9, #0x1
+        addne r3, #4
+
+        ; non-long multiplies do not have the first operand
+        cmp r9, #18
+        addlt r2, #4
+        addge r3, #4
+
         bl draw_word
 
         ; draw shift type
+        ; multiply instructions have no shift
+        cmp r9, #16
+        bge _draw_input
+
         add r0, r3, lsl #3
         sub r0, #8
         set_word r2, MEM_ROM + _shift_text
@@ -228,6 +295,8 @@ _test_error:
         add r0, #8
         mov r2, '2'
         bl draw_char
+
+        _draw_input:
 
         ; draw input text
         add r1, #8
@@ -359,9 +428,12 @@ _opcode_text:
         dw 'add ', 'adc ', 'sbc ', 'rsc '
         dw 'tst ', 'teq ', 'cmp ', 'cmn '
         dw 'orr ', 'mov ', 'bic ', 'mvn '
+        dw 'mul ', 'mla ', 'umul', 'umla'
+        dw 'smul', 'smla'
 
 _op_text:
-        dw 'r4, ', 'r0, ', 'r1  ', '    '
+        dw 'r4, ', 'r0, ', 'r1  ', '    '          ; for data processing
+        dw 'r4, ', 'r3, ', 'r0, ', 'r1, ', 'r2  '  ; for multiply
 
 _shift_text:
         dw 'lsl ', 'lsr ', 'asr ', 'ror '
