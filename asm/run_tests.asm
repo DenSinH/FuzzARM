@@ -325,7 +325,7 @@ _test_error:
 
         ; draw expected CPSR
         add r1, #8
-        mov r0, #0
+        mov r0, #16
         set_word r2, MEM_ROM + _cpsr_text
         mov r3, #4
         bl draw_word
