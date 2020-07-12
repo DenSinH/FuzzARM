@@ -1,4 +1,4 @@
-# GBATestROMGenerator
+# FuzzARM
 A random basic test ROM generator for the GBA. It tests both ARM and THUMB mode instructions (Data processing/ALU operations/direct adding/subtraction/loading and storing in various different ways), so basically the basic functions of the CPU.
 
 I plan on making it optional to add certain tests (for example, adding only THUMB tests, or not allowing load/store tests to be generated)
