@@ -27,7 +27,7 @@ Once there are no more tests failing, "End of testing" will be displayed as well
 The data processing tests work as follows:
   - r1 is shifted by r2 with the proper shift type, and stored in r3
   - r0 and r3 are operated upon, and stored in r4
-#### Note: this causes `ADC`/`SBC`/`RSC` behavior to be off, in the tests, the operation uses the _new_ value for C (after the shifting operation), while it should use the _old_ value of C
+#### Note: this causes `ADC`/`SBC`/`RSC` behavior to be off: in the tests, the operation uses the _new_ value for C (after the shifting operation), while it should use the _old_ value of C. A working emulator or hardware, should still pass the tests, because I account for this difference in generating the ROM!
 The multiplication instructions work as follows:
   - no register is shifted
   - r0, r1 are operated upon, and the result is stored in r3 (and r4 in case of a `MULL/MLAL` instruction)
@@ -37,7 +37,7 @@ The load/store instructions work as follows:
   - r4 (and r3 for `LDM`/`SWP` instructions) are stored
   - r4 (and r3 for `LDM`/`SWP` instructions) are changed to the value of `r12`, which always holds `0800XXXX` as far as I'm aware
   - r4 (and r3 for `LDM`/`SWP` instructions) are loaded from the same addresses
-#### Note: no strange edge case behavior is tested for loading and storing, all loads/stores tested are word aligned!
+#### Note: no strange edge case behavior is tested for loading and storing: all loads/stores tested are word aligned!
   
 The ROM uses a PSR transfer to initialize the CPSR to some arbitrary value to improve testing accuracy. 
 
