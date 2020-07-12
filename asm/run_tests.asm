@@ -42,8 +42,15 @@ run_tests:
                 and r10, r7, #0xf0000000
 
                 ; in case of multiply instruction
-                tst r9, #16
+                tst r9, #0x10
                 orrne r2, r2, r8, lsl #24
+
+                ; in case of load/store instruction
+                ; set r2 to a word aligned address in the middle of iWRAM
+                tst r9, #0x20
+                movne r2, r2, lsl #2
+                addne r2, MEM_IWRAM
+                addne r2, #0x4000
 
                 ; initialize expected CPSR for test
                 and r7, #0x0f000000
@@ -51,6 +58,10 @@ run_tests:
 
                 stmdb sp!, { r11, r12 }
 
+                ; we need r12 to be 0 for determining the switch table offset
+                ; store r10 to have an extra register available after the test has started
+                stmdb sp!, { r10 }
+                mov r12, #0
                 tst r9, #0x80
                 bleq _run_test_single
                 tst r9, #0x80
@@ -73,9 +84,9 @@ _finished_tests_text:
         dw 'End ', 'of t', 'esti', 'ng  '
 
 _run_test_single:
-        ; no shift for multiply instructions
-        tst r9, #16
-        bne _do_operation_mul
+        ; no shift for multiply/load store instructions
+        tst r9, #0x30
+        bne _do_operation_no_shift
 
 _shift_operand:
         ; shift operand into r3
@@ -94,7 +105,6 @@ _shift_operand:
                 dw MEM_ROM + _shift_asr
                 dw MEM_ROM + _shift_ror
 
-
         _shift_lsl:
                 movs r3, r1, lsl r2
                 b _do_operation
@@ -108,14 +118,19 @@ _shift_operand:
                 movs r3, r1, ror r2
                 b _do_operation
 
-_do_operation_mul:
-        ; initialize CPSR for mul test
+_do_operation_no_shift:
+        ; initialize CPSR for mul/load store tests
+        tst r9, #0x20
+        movne r12, _opcode_switch_load_store - _opcode_switch
+
         msr CPSR_flg, r10
 
 _do_operation:
         ; execute operation
         set_word r11, MEM_ROM + _opcode_switch
-        add r11, r9, lsl #2
+        add r11, r12
+        and r12, r9, #0x1f
+        add r11, r12, lsl #2
         ldr r11, [r11]
 
         bx r11
@@ -132,7 +147,11 @@ _do_operation:
                 dw MEM_ROM + _opcode_mul, MEM_ROM + _opcode_mla
                 dw MEM_ROM + _opcode_umull, MEM_ROM + _opcode_umlal
                 dw MEM_ROM + _opcode_smull, MEM_ROM + _opcode_smlal
-
+        _opcode_switch_load_store:
+                dw MEM_ROM + _opcode_ldr, MEM_ROM + _opcode_ldrh
+                dw MEM_ROM + _opcode_ldrsh, MEM_ROM + _opcode_ldrb
+                dw MEM_ROM + _opcode_ldrsb, MEM_ROM + _opcode_ldm
+                dw MEM_ROM + _opcode_swp
 
         _opcode_and:
                 ands r4, r0, r3
@@ -201,10 +220,49 @@ _do_operation:
                 smlals r4, r3, r0, r1
                 b _test_check
 
+        _opcode_ldr:
+                str r4, [r2]
+                mov r4, #0
+                ldr r4, [r2]
+                b _test_check
+        _opcode_ldrh:
+                strh r4, [r2]
+                mov r4, #0
+                ldrh r4, [r2]
+                b _test_check
+        _opcode_ldrsh:
+                strh r4, [r2]
+                mov r4, #0
+                ldrsh r4, [r2]
+                b _test_check
+        _opcode_ldrb:
+                strb r4, [r2]
+                mov r4, #0
+                ldrb r4, [r2]
+                b _test_check
+        _opcode_ldrsb:
+                strb r4, [r2]
+                mov r4, #0
+                ldrsb r4, [r2]
+                b _test_check
+        _opcode_ldm:
+                stmdb r2!, { r3, r4 }
+                mov r4, #0
+                mov r3, #0
+                ldmia r2!, { r3, r4 }
+                b _test_check
+        _opcode_swp:
+                str r4, [r2]
+                swp r4, r3, [r2]
+                ldr r3, [r2]
+                b _test_check
+
+
+
 _run_test_single_t:
-        ; no shift for multiply instructions
-        tst r9, #16
-        bne _do_operation_mul_t
+        ; no shift for multiply/load store instructions
+        tst r9, #0x30
+        bne _do_operation_no_shift_t
 
 _shift_operand_t:
         ; shift operand into r3
@@ -212,10 +270,11 @@ _shift_operand_t:
         add r11, r8, lsl #2
         ldr r11, [r11]
 
-        set_word r12, MEM_ROM + _do_operation_t
-
         ; initialize CPSR for test
         msr CPSR_flg, r10
+
+        ; we use r10 here because we want to keep r12 0 for the switch case offset
+        set_word r10, MEM_ROM + _do_operation_t
 
         bx r11
 
@@ -229,31 +288,36 @@ _shift_operand_t:
         align 2
         _shift_lsl_t:
                 lsl r3, r2
-                bx r12
+                bx r10
         _shift_lsr_t:
                 lsr r3, r2
-                bx r12
+                bx r10
         _shift_asr_t:
                 asr r3, r2
-                bx r12
+                bx r10
         _shift_ror_t:
                 ror r3, r2
-                bx r12
+                bx r10
 
 code32
 align 4
-_do_operation_mul_t:
+_do_operation_no_shift_t:
+        tst r9, #0x20
+        movne r12, _opcode_switch_load_store_t - _opcode_switch_t
+
         ; initialize CPSR for mul test
         msr CPSR_flg, r10
 
 _do_operation_t:
         ; execute operation
         set_word r11, MEM_ROM + _opcode_switch_t
-        and r12, r9, #0x7f
+        add r11, r12  ; add potential offset for load/store instructions
+        and r12, r9, #0x1f
         add r11, r12, lsl #2
         ldr r11, [r11]
 
         set_word r12, MEM_ROM + _test_check
+        mov r10, #0   ; used for ldrsh/ldrsb
 
         bx r11
 
@@ -268,6 +332,10 @@ _do_operation_t:
                 dw MEM_ROM + _opcode_bic_t + 1, MEM_ROM + _opcode_mvn_t + 1
                 dw MEM_ROM + _opcode_mul_t + 1, 0xffffffff
                 ; no UMULL/SMULL/UMLAL/SMLAL instructions in THUMB mode
+        _opcode_switch_load_store_t:
+                dw MEM_ROM + _opcode_ldr_t + 1, MEM_ROM + _opcode_ldrh_t + 1
+                dw MEM_ROM + _opcode_ldrsh_t + 1, MEM_ROM + _opcode_ldrb_t + 1
+                dw MEM_ROM + _opcode_ldrsb_t + 1, MEM_ROM + _opcode_ldm_t + 1
 
         code16
         align 2
@@ -302,6 +370,10 @@ _do_operation_t:
                 orr r4, r3
                 bx r12
         _opcode_mov_t:
+                ; there was no other way to actually do a mov instruction
+                ; a mov instruction in THUMB mode is interpreted as a
+                ; adds, Rd, Rm, #0 (direct addition) instruction,
+                ; and will therefore not give an accurate result
                 mov r11, r3
                 mov r4, r11
                 bx r12
@@ -315,6 +387,42 @@ _do_operation_t:
                 mul r3, r4
                 bx r12
 
+        _opcode_ldr_t:
+                str r4, [r2]
+                mov r4, r12  ; does not alter CPSR flags
+                ldr r4, [r2]
+                bx r12
+        _opcode_ldrh_t:
+                strh r4, [r2]
+                mov r4, r12  ; does not alter CPSR flags
+                ldrh r4, [r2]
+                bx r12
+        _opcode_ldrsh_t:
+                ; I had to come up with a way to make a lo register hold 0 without changing
+                ; CPSR flags...
+                strh r4, [r2]
+                mov r4, r10
+                ldrsh r4, [r2, r4]
+                bx r12
+        _opcode_ldrb_t:
+                strb r4, [r2]
+                mov r4, r12  ; does not alter CPSR flags
+                ldrb r4, [r2]
+                bx r12
+        _opcode_ldrsb_t:
+                ; Again, I had to come up with a way to make a lo register hold 0 without changing
+                ; CPSR flags...
+                strb r4, [r2]
+                mov r4, r10
+                ldrsb r4, [r2, r4]
+                bx r12
+        _opcode_ldm_t:
+                push { r3, r4 }
+                mov r4, r12
+                mov r3, r12  ; does not alter CPSR flags
+                pop { r3, r4 }
+                bx r12
+
 code32
 align 4
 _test_check:
@@ -322,8 +430,11 @@ _test_check:
         mrs r11, CPSR
         and r11, #0xf0000000
         ; C flag is garbage for multiply instructions
-        tst r9, #16
+        tst r9, #0x10
         andne r11, #0xd0000000
+
+        ; get the initial CPSR values back for reporting
+        ldmia sp!, { r10 }
 
 
         ; compare gotten vs expected
@@ -366,14 +477,24 @@ _test_error:
 
         ; draw opcode
         ; store the "reduced" (stateless) opcode in r7
-        and r7, r9, #0x7f
+        and r7, r9, #0x1f
 
         mov r0, #0
         add r1, #8
         set_word r2, MEM_ROM + _opcode_text
         mov r3, #4
+
+        ; load/store instructions are different yet again
+        tst r9, #0x20
+        addne r2, _opcode_load_store_text - _opcode_text
+        addne r3, #8
         add r2, r7, lsl #2
+        addne r2, r7, lsl #3
         bl draw_word
+
+        ; we don't draw the operands for load store instructions either
+        tst r9, #0x20
+        bne _draw_input
 
         add r0, #8 * 4
 
@@ -565,6 +686,14 @@ _opcode_text:
         dw 'orr ', 'mov ', 'bic ', 'mvn '
         dw 'mul ', 'mla ', 'umul', 'umla'
         dw 'smul', 'smla'
+_opcode_load_store_text:
+        dw 'str/', 'ldr ', '    '
+        dw 'strh', '/ldr', 'h   '
+        dw 'strh', '/ldr', 'sh  '
+        dw 'strb', '/ldr', 'b   '
+        dw 'strb', '/ldr', 'sb  '
+        dw 'stm/', 'ldm ', '    '
+        dw 'swp ', '    ', '    '
 
 _op_text:
         dw 'r4, ', 'r0, ', 'r1  ', '    '          ; for data processing

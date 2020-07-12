@@ -1,5 +1,6 @@
 from lib.DataProcessing import DataProcessing
 from lib.Multiply import multiply
+from lib.LoadStore import LoadStore
 
 import random
 import numpy as np
@@ -16,7 +17,7 @@ Format for tests.inc file:
     r4 expected value (output)
     
     word:
-        LSB    : 0000 opcode OR 0001 mul(l)/mla(l) opcode
+        LSB    : T bit | 0 | 0 | 0 | (opcode OR 0001 mul(l)/mla(l) opcode)
         LSB + 1: r2 value (shift amount OR operand 3) 
         MSB - 1: shift type (OR higher byte of r2 value for mul(l)/mla(l))
         MSB    : 
@@ -24,35 +25,78 @@ Format for tests.inc file:
             high nibble: CPSR flags initial value
 """
 
-VALID_ARM_TESTS = list(range(22))
-VALID_THUMB_TESTS = [0, 1, 2, 4, 5, 6, 8, 10, 11, 12, 13, 14, 15, 16]
+VALID_ARM_DATA_PROCESSING = list(range(16))
+VALID_ARM_MULTIPLY = list(range(16, 22))
+VALID_ARM_LOAD_STORE = list(range(32, 39))
+
+VALID_THUMB_DATA_PROCESSING = [0, 1, 2, 4, 5, 6, 8, 10, 11, 12, 13, 14, 15]
+VALID_THUMB_MULTIPLY = [16]
+VALID_THUMB_LOAD_STORE = [32, 33, 34, 35, 36, 37]
 
 
-def generate(number_of_tests: int, seed=None):
+def generate(
+        number_of_tests: int,
+        do_data_processing=True,
+        do_multiply=True,
+        do_load_store=True,
+        do_thumb_mode="some",
+        seed=None
+):
     if seed:
         random.seed(seed)
 
     if number_of_tests < 1:
         raise ValueError(f"Cannot generate less than 1 test")
 
+    THUMB_OPCODES = []
+    ARM_OPCODES = []
+
+    if do_data_processing:
+        THUMB_OPCODES += VALID_THUMB_DATA_PROCESSING
+        ARM_OPCODES += VALID_ARM_DATA_PROCESSING
+
+    if do_multiply:
+        THUMB_OPCODES += VALID_THUMB_MULTIPLY
+        ARM_OPCODES += VALID_ARM_MULTIPLY
+
+    if do_load_store:
+        THUMB_OPCODES += VALID_THUMB_LOAD_STORE
+        ARM_OPCODES += VALID_ARM_LOAD_STORE
+
+    if not THUMB_OPCODES or not ARM_OPCODES:
+        raise ValueError("Cannot generate tests if there are no modes selected")
+
     tests = "; assortment of randomly generated tests\nalign 4\ntests:\n        dw {0:#010x}".format(number_of_tests)
     test_set = set()
     while len(test_set) < number_of_tests:
-        thumb_mode = random.getrandbits(1)
-        opcode = random.choice([VALID_ARM_TESTS, VALID_THUMB_TESTS][thumb_mode])
+        if do_thumb_mode == "some":
+            thumb_mode = random.randint(0, 1)
+        elif do_thumb_mode == "all":
+            thumb_mode = 1
+        else:
+            thumb_mode = 0
+
+        opcode = random.choice([ARM_OPCODES, THUMB_OPCODES][thumb_mode])
         r0_value = np.uint32(random.getrandbits(32))
         r1_value = np.uint32(random.getrandbits(32))
         N, Z, C, V = random.getrandbits(1), random.getrandbits(1), random.getrandbits(1), random.getrandbits(1)
 
         if opcode < 16:
+            # arithmetic
             r2_value = random.randint(0, 33)
             shift_type = random.randint(0, 3)
             r3_expected, r4_expected, CPSR_flags = DataProcessing(opcode, r0_value, r1_value, r2_value, shift_type, N, Z, C, V)
-        else:
+        elif opcode < 22:
+            # multiply
             r2_value = random.randint(0, 0xff)
             shift_type = random.randint(0, 0xff)
             C = 0  # C is garbage for multiplies
             r3_expected, r4_expected, CPSR_flags = multiply(opcode, r0_value, r1_value, r2_value | (shift_type << 24), N, Z, C, V)
+        else:
+            # load/store
+            r2_value = random.randint(0, 0xff)
+            shift_type = random.randint(0, 0xff)
+            r3_expected, r4_expected, CPSR_flags = LoadStore(opcode, r0_value, r1_value, r2_value, N, Z, C, V)
 
         CPSR_init = (N << 3) | (Z << 2) | (C << 1) | V
 

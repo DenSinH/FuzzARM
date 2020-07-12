@@ -144,10 +144,10 @@ def DataProcessing(opcode: int, r0: int, r1: int, r2: int, shift_type: int, N, Z
 
 
 if __name__ == '__main__':
-    r0 = 0x857370AA
-    r1 = 0xF69CEA3A
-    r2 = 0x00000020
+    r0 = 0xBC6589C8
+    r1 = 0xB8A80127
+    r2 = 0x0000001F
 
-    r3, r4, CPSR_flags = DataProcessing(0b0111, r0, r1, r2, 3, 1, 0, 1, 1)
+    r3, r4, CPSR_flags = DataProcessing(0b0110, r0, r1, r2, 2, 1, 1, 0, 1)
     print(hex(r3), hex(r4), hex(CPSR_flags))
 
