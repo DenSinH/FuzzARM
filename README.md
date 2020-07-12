@@ -3,7 +3,7 @@ A random basic test ROM generator for the GBA. It tests both ARM and THUMB mode 
 
 I plan on making it optional to add certain tests (for example, adding only THUMB tests, or not allowing load/store tests to be generated)
 
-*Disclaimer* I do not own FASMARM in any way shape or form, nor have I contributed to it. I merely use it in this project to compile the generated .asm ROMS.
+*Disclaimer* I do not own [FASMARM](https://arm.flatassembler.net/) in any way shape or form, nor have I contributed to it. I merely use it in this project to compile the generated .asm ROMS.
 
 ### Generating a ROM:
 Running `main.py` will prompt you with a question for how many tests you want, you can give any value greater than or equal to 1. Note that you will have to make sure that the ROM size will not get too big, so you should not do over about ~1600000 tests (I did about 1000 for testing this script, that should be enough really, but if you really want you can add way more)
