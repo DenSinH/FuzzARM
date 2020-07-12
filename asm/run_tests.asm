@@ -267,6 +267,7 @@ _do_operation_t:
                 dw MEM_ROM + _opcode_orr_t + 1, MEM_ROM + _opcode_mov_t + 1
                 dw MEM_ROM + _opcode_bic_t + 1, MEM_ROM + _opcode_mvn_t + 1
                 dw MEM_ROM + _opcode_mul_t + 1, 0xffffffff
+                ; no UMULL/SMULL/UMLAL/SMLAL instructions in THUMB mode
 
         code16
         align 2
@@ -301,7 +302,8 @@ _do_operation_t:
                 orr r4, r3
                 bx r12
         _opcode_mov_t:
-                mov r4, r3
+                mov r11, r3
+                mov r4, r11
                 bx r12
         _opcode_bic_t:
                 bic r4, r3
@@ -320,8 +322,8 @@ _test_check:
         mrs r11, CPSR
         and r11, #0xf0000000
         ; C flag is garbage for multiply instructions
-        cmp r9, #16
-        andge r11, #0xd0000000
+        tst r9, #16
+        andne r11, #0xd0000000
 
 
         ; compare gotten vs expected

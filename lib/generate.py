@@ -38,7 +38,7 @@ def generate(number_of_tests: int, seed=None):
     tests = "; assortment of randomly generated tests\nalign 4\ntests:\n        dw {0:#010x}".format(number_of_tests)
     test_set = set()
     while len(test_set) < number_of_tests:
-        thumb_mode = 0  # random.getrandbits(1)
+        thumb_mode = random.getrandbits(1)
         opcode = random.choice([VALID_ARM_TESTS, VALID_THUMB_TESTS][thumb_mode])
         r0_value = np.uint32(random.getrandbits(32))
         r1_value = np.uint32(random.getrandbits(32))
