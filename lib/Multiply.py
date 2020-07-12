@@ -10,7 +10,7 @@ def multiply(opcode: int, r0: int, r1: int, r2: int, N, Z, C, V):
     :param: N, Z, C, V: initial CPSR flags
     :return:
     """
-    registers = np.array([r0, r1, r2, 0, 0], dtype=np.uint32)
+    registers = np.array([r0, r1, r2, r1, r0], dtype=np.uint32)
 
     if opcode == 0b10000:    # MUL
         registers[3] = registers[0] * registers[1]
@@ -22,14 +22,16 @@ def multiply(opcode: int, r0: int, r1: int, r2: int, N, Z, C, V):
         registers[4] = HiLo & np.uint64(0xffff_ffff)
     elif opcode == 0b10011:  # UMLAL
         HiLo = np.uint64(registers[0]) * np.uint64(registers[1])
+        HiLo += np.uint64(registers[3] << np.uint64(32)) + np.uint64(registers[4])
         registers[3] = HiLo >> np.uint64(32)
         registers[4] = HiLo & np.uint64(0xffff_ffff)
     elif opcode == 0b10100:  # SMULL
         HiLo = np.int64(np.int32(registers[0])) * np.int64(np.int32(registers[1]))
         registers[3] = np.uint32(HiLo >> np.int64(32))
         registers[4] = np.uint32(HiLo & np.int64(0xffff_ffff))
-    elif opcode == 0b10101:  # SMULL
+    elif opcode == 0b10101:  # SMLAL
         HiLo = np.int64(np.int32(registers[0])) * np.int64(np.int32(registers[1]))
+        HiLo += np.int64(np.int64(registers[3]) << np.int64(32)) + np.int64(registers[4])
         registers[3] = np.uint32(HiLo >> np.int64(32))
         registers[4] = np.uint32(HiLo & np.int64(0xffff_ffff))
     else:

@@ -35,22 +35,26 @@ run_tests:
                 mov r10, #0xff
 
                 and r2, r10, r7, lsr #8   ; shift amount
-                mov r3, #0
-                mov r4, #0
+                mov r3, r1
+                mov r4, r0
                 and r8, r10, r7, lsr #16  ; shift type
                 and r9, r10, r7           ; opcode
                 and r10, r7, #0xf0000000
 
                 ; in case of multiply instruction
-                cmp r9, #16
-                orrge r2, r2, r8, lsl #24
+                tst r9, #16
+                orrne r2, r2, r8, lsl #24
 
                 ; initialize expected CPSR for test
                 and r7, #0x0f000000
                 mov r7, r7, lsl #4
 
                 stmdb sp!, { r11, r12 }
-                bl _run_tests_single
+
+                tst r9, #0x80
+                bleq _run_test_single
+                tst r9, #0x80
+                blne _run_test_single_t
                 ldmia sp!, { r11, r12 }
                 subs r12, #1
                 bne _run_tests_loop
@@ -68,10 +72,10 @@ run_tests:
 _finished_tests_text:
         dw 'End ', 'of t', 'esti', 'ng  '
 
-_run_tests_single:
+_run_test_single:
         ; no shift for multiply instructions
-        cmp r9, #16
-        bge _do_operation_mul
+        tst r9, #16
+        bne _do_operation_mul
 
 _shift_operand:
         ; shift operand into r3
@@ -188,17 +192,129 @@ _do_operation:
                 umulls r4, r3, r0, r1
                 b _test_check
         _opcode_umlal:
-                ; accumulation actually does not do anything in this case
                 umlals r4, r3, r0, r1
                 b _test_check
         _opcode_smull:
                 smulls r4, r3, r0, r1
                 b _test_check
         _opcode_smlal:
-                ; accumulation actually does not do anything in this case
                 smlals r4, r3, r0, r1
                 b _test_check
 
+_run_test_single_t:
+        ; no shift for multiply instructions
+        tst r9, #16
+        bne _do_operation_mul_t
+
+_shift_operand_t:
+        ; shift operand into r3
+        set_word r11, MEM_ROM + _shift_switch_t
+        add r11, r8, lsl #2
+        ldr r11, [r11]
+
+        set_word r12, MEM_ROM + _do_operation_t
+
+        ; initialize CPSR for test
+        msr CPSR_flg, r10
+
+        bx r11
+
+        _shift_switch_t:
+                dw MEM_ROM + _shift_lsl_t + 1
+                dw MEM_ROM + _shift_lsr_t + 1
+                dw MEM_ROM + _shift_asr_t + 1
+                dw MEM_ROM + _shift_ror_t + 1
+
+        code16
+        align 2
+        _shift_lsl_t:
+                lsl r3, r2
+                bx r12
+        _shift_lsr_t:
+                lsr r3, r2
+                bx r12
+        _shift_asr_t:
+                asr r3, r2
+                bx r12
+        _shift_ror_t:
+                ror r3, r2
+                bx r12
+
+code32
+align 4
+_do_operation_mul_t:
+        ; initialize CPSR for mul test
+        msr CPSR_flg, r10
+
+_do_operation_t:
+        ; execute operation
+        set_word r11, MEM_ROM + _opcode_switch_t
+        and r12, r9, #0x7f
+        add r11, r12, lsl #2
+        ldr r11, [r11]
+
+        set_word r12, MEM_ROM + _test_check
+
+        bx r11
+
+        _opcode_switch_t:
+                dw MEM_ROM + _opcode_and_t + 1, MEM_ROM + _opcode_eor_t + 1
+                dw MEM_ROM + _opcode_sub_t + 1, 0xffffffff
+                dw MEM_ROM + _opcode_add_t + 1, MEM_ROM + _opcode_adc_t + 1
+                dw MEM_ROM + _opcode_sbc_t + 1, 0xffffffff
+                dw MEM_ROM + _opcode_tst_t + 1, 0xffffffff
+                dw MEM_ROM + _opcode_cmp_t + 1, MEM_ROM + _opcode_cmn_t + 1
+                dw MEM_ROM + _opcode_orr_t + 1, MEM_ROM + _opcode_mov_t + 1
+                dw MEM_ROM + _opcode_bic_t + 1, MEM_ROM + _opcode_mvn_t + 1
+                dw MEM_ROM + _opcode_mul_t + 1, 0xffffffff
+
+        code16
+        align 2
+        _opcode_and_t:
+                and r4, r3
+                bx r12
+        _opcode_eor_t:
+                eor r4, r3
+                bx r12
+        _opcode_sub_t:
+                sub r4, r3
+                bx r12
+        _opcode_add_t:
+                add r4, r3
+                bx r12
+        _opcode_adc_t:
+                adc r4, r3
+                bx r12
+        _opcode_sbc_t:
+                sbc r4, r3
+                bx r12
+        _opcode_tst_t:
+                tst r4, r3
+                bx r12
+        _opcode_cmp_t:
+                cmp r4, r3
+                bx r12
+        _opcode_cmn_t:
+                cmn r4, r3
+                bx r12
+        _opcode_orr_t:
+                orr r4, r3
+                bx r12
+        _opcode_mov_t:
+                mov r4, r3
+                bx r12
+        _opcode_bic_t:
+                bic r4, r3
+                bx r12
+        _opcode_mvn_t:
+                mvn r4, r3
+                bx r12
+        _opcode_mul_t:
+                mul r3, r4
+                bx r12
+
+code32
+align 4
 _test_check:
         ; get CPSR flags
         mrs r11, CPSR
@@ -238,48 +354,62 @@ _test_error:
         mov r3, #12
         bl draw_word
 
+        ; draw state
+        set_word r2, MEM_ROM + _state_text
+        tst r9, #0x80
+        addne r2, #8
+        add r0, #12 * 8
+        mov r3, #8
+        bl draw_word
+
         ; draw opcode
+        ; store the "reduced" (stateless) opcode in r7
+        and r7, r9, #0x7f
+
+        mov r0, #0
         add r1, #8
         set_word r2, MEM_ROM + _opcode_text
         mov r3, #4
-        add r2, r9, lsl #2
+        add r2, r7, lsl #2
         bl draw_word
 
         add r0, #8 * 4
 
         ; for multiply long instructions, the opcode is longer
-        cmp r9, #18
+        cmp r7, #18
         movge r2, 'l'
         blge draw_char
-        cmp r9, #18
+        cmp r7, #18
         addge r0, #2 * 8
 
         ; draw operands
-        set_word r2, MEM_ROM + _op_text
-        mov r3, #10
+        ; overshoot the operand location because we correct for it later when checking
+        ; for multiply long instructions
+        set_word r2, MEM_ROM + _op_text + 4
+        mov r3, #12
         ; some opcodes don't have a destination register
-        and r4, r9, #0xc
+        and r4, r7, #0xc
         cmp r4, #0x8
         addeq r2, #4
 
         ; multiply opcodes have different operands
-        cmp r9, #16
-        addge r2, #4 * 4
+        tst r7, #0x10
+        addne r2, #4 * 4
 
         ; accumulate multiplies have an extra operand
-        tstgt r9, #0x1
+        tstne r7, #0x1
         addne r3, #4
 
         ; non-long multiplies do not have the first operand
-        cmp r9, #18
-        addlt r2, #4
+        cmp r7, #18
+        sublt r2, #4
         addge r3, #4
 
         bl draw_word
 
         ; draw shift type
         ; multiply instructions have no shift
-        cmp r9, #16
+        cmp r7, #16
         bge _draw_input
 
         add r0, r3, lsl #3
@@ -415,13 +545,16 @@ _test_error:
                 ldr r1, [r0]
                 and r1, #0xff
                 cmp r1, #0xff
-                beq wait_until_keys_up
+                beq wait_until_key_down
 
         ldmia sp!, { lr }
         bx lr
 
 _failed_text:
-        dw 'Fail', 'ed t', 'est:'
+        dw 'Fail', 'ed t', 'est '
+
+_state_text:
+        dw 'ARM:', '    ', 'THUM', 'B:  '
 
 _opcode_text:
         dw 'and ', 'eor ', 'sub ', 'rsb '

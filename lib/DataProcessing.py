@@ -37,7 +37,7 @@ def DataProcessing(opcode: int, r0: int, r1: int, r2: int, shift_type: int, N, Z
     :param: N, Z, C, V: initial CPSR flags
     :return:
     """
-    registers = np.array([r0, r1, r2, 0, 0], dtype=np.uint32)
+    registers = np.array([r0, r1, r2, r1, r0], dtype=np.uint32)
 
     # r3 = mov r1, shift_type, #r2
     if registers[2] != 0:
@@ -48,6 +48,7 @@ def DataProcessing(opcode: int, r0: int, r1: int, r2: int, shift_type: int, N, Z
                 registers[3] = 0
             elif registers[2] == 32:
                 C = registers[1] & 0x1
+                registers[3] = 0
             else:
                 C = (registers[1] >> (32 - registers[2])) & 0x01
                 registers[3] = registers[1] << registers[2]
@@ -58,6 +59,7 @@ def DataProcessing(opcode: int, r0: int, r1: int, r2: int, shift_type: int, N, Z
                 registers[3] = 0
             elif registers[2] == 32:
                 C = (registers[1] >> 31) & 0x1
+                registers[3] = 0
             else:
                 C = ((registers[1] >> (registers[2] - 1)) & 0x01)
                 registers[3] = registers[1] >> registers[2]
