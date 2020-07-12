@@ -1,5 +1,5 @@
 # GBATestROMGenerator
-A random basic test ROM generator for the GBA
+A random basic test ROM generator for the GBA. It tests both ARM and THUMB mode instructions (Data processing/ALU operations/direct adding/subtraction), so basically the basic functions of the CPU. I plan on adding load/store tests as well.
 
 *Disclaimer* I do not own FASMARM in any way shape or form, nor have I contributed to it. I merely use it in this project to compile the generated .asm ROMS
 
