@@ -14,7 +14,7 @@ After this, the script will finish running and make a `main.gba` file in the sam
 The only libraries I used are `random`, `numpy` and `subprocess`. I think these are all builtin in Python (though I'm not sure about `numpy`).
 
 ### ROM running requirements:
-If you are building an emulator, I wrote this so that it can be ran from the very early stages of emulation. It uses rendering mode 4 to diplay the results, so you will need that. Other than that, I do _not_ use any SWIs/DMAs/Timers/IRQs/Weird IO registers (Only `DISPCNT`) and `KEYINPUT`. You should be fine having most the basic instructions implemented, I use conditional operations, branches, arithmetic operations, and PSR transfers, but that should be about it. 
+If you are building an emulator, I wrote this so that it can be ran from the very early stages of emulation. It uses rendering mode 4 to diplay the results, so you will need that. Other than that, I do _not_ use any SWIs/DMAs/Timers/IRQs/Weird IO registers (Only `DISPCNT` and `KEYINPUT`). You should be fine having most the basic instructions implemented, I use conditional operations, branches, arithmetic operations, and PSR transfers, but that should be about it. 
 
 I think these ROMs should be very useful for debugging purposes, as they do not have any timing requirements, as mentioned above. If the ROM doesn't run _at all_ on your emulator, you should be able to copmare logs with established emulators like mGBA or Nanoboy Advance (though mGBA does not always pass apparently, VBA doesn't either).
 
