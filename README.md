@@ -18,6 +18,9 @@ If you are building an emulator, I wrote this so that it can be ran from the ver
 
 I think these ROMs should be very useful for debugging purposes, as they do not have any timing requirements, as mentioned above. If the ROM doesn't run _at all_ on your emulator, you should be able to copmare logs with established emulators like mGBA or Nanoboy Advance (though mGBA does not always pass apparently, VBA doesn't either).
 
+### The ROM in the repo:
+There is a ROM in the repo (`main.gba`). This ROM holds 10000 randomly generated tests for ARM/THUMB mode and all things it can possibly test. If you do not want to generate more ROMs yourself, you can simply download that one.
+
 ### Output:
 If you pass all tests, the ROM will display "End of testing" right away.
 If you fail any test, the ROM will hang on that test, and display the following things:
