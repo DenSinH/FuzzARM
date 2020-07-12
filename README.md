@@ -23,10 +23,10 @@ If you fail any test, the ROM will hang on that test, and display the following 
 The ROM uses a PSR transfer to initialize the CPSR to some arbitrary value to improve testing accuracy. 
 
 ### Screenshots:
-Replacing `&` for `^` in the TST instruction:
+Setting part of the result to 0 in a `SMULL` instruction:
 
 
-![TST EOR instead of AND](https://github.com/DenSinH/GBATestROMGenerator/blob/master/Screenshots/TST%20EOR%20instead%20of%20AND.png)
+![TST EOR instead of AND](https://github.com/DenSinH/GBATestROMGenerator/blob/master/Screenshots/SMULL.png)
 
 Passing all tests:
 
