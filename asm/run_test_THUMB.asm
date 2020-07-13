@@ -130,7 +130,7 @@ _do_operation_t:
                 mvn r4, r3
                 bx r12
         _opcode_mul_t:
-                mul r3, r4
+                mul r4, r3
                 bx r12
 
         _opcode_ldr_t:

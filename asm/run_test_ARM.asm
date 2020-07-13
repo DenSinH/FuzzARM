@@ -125,22 +125,22 @@ _do_operation:
                 mvns r4, r3
                 b _test_check
         _opcode_mul:
-                muls r3, r0, r1
+                muls r4, r0, r1
                 b _test_check
         _opcode_mla:
-                mlas r3, r0, r1, r2
+                mlas r4, r0, r1, r2
                 b _test_check
         _opcode_umull:
-                umulls r4, r3, r0, r1
+                umulls r3, r4, r0, r1
                 b _test_check
         _opcode_umlal:
-                umlals r4, r3, r0, r1
+                umlals r3, r4, r0, r1
                 b _test_check
         _opcode_smull:
-                smulls r4, r3, r0, r1
+                smulls r3, r4, r0, r1
                 b _test_check
         _opcode_smlal:
-                smlals r4, r3, r0, r1
+                smlals r3, r4, r0, r1
                 b _test_check
 
         _opcode_ldr:
