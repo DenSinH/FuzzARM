@@ -60,7 +60,7 @@ Once there are no more tests failing, "End of testing" will be displayed as well
 #### Note: I 'retransfer' the initial CPSR flags for `ADC`/`SBC`/`RSC`, because those need the _old_ value of C to operate upon.
 #### The multiplication instructions work as follows:
   - no register is shifted
-  - r0, r1 are operated upon, and the result is stored in r3 (and r4 in case of a `MULL/MLAL` instruction)
+  - r0, r1 are operated upon, and the result is stored in r4 (and r3 in case of a `MULL/MLAL` instruction)
   
 #### The load/store instructions work as follows:
   - no register is shifted
