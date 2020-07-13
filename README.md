@@ -36,6 +36,7 @@ It dumps the results in the following format (also described in `/asm/run_tests.
 1 word:  [expected r4]
 1 word:  [expected CPSR]
 ```
+So the opcode format is for example `tst lsl     `, or `smull       `, or `strh/ldrsh   `.
 
 ### The ROM in the repo:
 There is a ROM in the repo (`main.gba`). This ROM holds 10000 randomly generated tests for ARM/THUMB mode and all things it can possibly test. If you do not want to generate more ROMs yourself, you can simply download that one.
