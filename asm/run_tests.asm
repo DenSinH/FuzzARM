@@ -123,6 +123,29 @@ _test_error:
         stmdb sp!, { r2 }
         stmdb sp!, { r1 }
         stmdb sp!, { r0 }
+        ; NOTE TO SELF: from here on out, we assume that the "reduced opcode" (&0x1f)
+        ; can only be greater than #18 (dec) for multiplication instructions
+
+        ; we use r6 and r5 to dump the text to eWRAM for people who are too lazy to interpret
+        ; the screen by themselves
+
+        ; we store the failed test data as follows:
+        ; 1 word:  ['AAAA' OR 'TTTT'] for ARM or THUMB state
+        ; 3 words: [opcode + shift] OR [multiplication opcode] OR [store opcode/load opcode]
+        ; 1 word:  [initial r0]
+        ; 1 word:  [initial r1]
+        ; 1 word:  [initial r2]
+        ; 1 word:  [initial CPSR]
+        ; 1 word:  [gotten  r3]
+        ; 1 word:  [gotten  r4]
+        ; 1 word:  [gotten  CPSR]
+        ; 1 word:  [expected r3]
+        ; 1 word:  [expected r4]
+        ; 1 word:  [expected CPSR]
+
+_draw_failed_test:
+        mov r6, MEM_EWRAM
+
         ; draw 'Failed test':
         mov r0, #0
         mov r1, #0
@@ -130,14 +153,25 @@ _test_error:
         mov r3, #12
         bl draw_word
 
+_draw_state:
         ; draw state
         set_word r2, MEM_ROM + _state_text
         tst r9, #0x80
         addne r2, #8
+        ; write state to eWRAM
+        movne r5, 'T'
+        moveq r5, 'A'
+        orr r5, r5, lsl #8
+        orr r5, r5, lsl #16
+        orr r5, r5, lsl #24
+        str r5, [r6]
+        add r6, #4
+
         add r0, #12 * 8
         mov r3, #8
         bl draw_word
 
+_draw_opcode:
         ; draw opcode
         ; store the "reduced" (stateless) opcode in r7
         and r7, r9, #0x1f
@@ -153,12 +187,29 @@ _test_error:
         addne r3, #8
         add r2, r7, lsl #2
         addne r2, r7, lsl #3
+
+        ; write opcode to WRAM
+        ldr r5, [r2]
+        str r5, [r6]
+        add r6, #4
+
+        ; longer opcode for multiplication:
+        cmp r7, #0x10
+        bge _write_opcode_multiply
+
+        ; longer opcode for load/store
+        tstlt r9, #0x20
+        bne _write_opcode_load_store
+
+        _write_opcode_return:
+
         bl draw_word
 
         ; we don't draw the operands for load store instructions either
         tst r9, #0x20
         bne _draw_input
 
+_draw_operands:
         add r0, #8 * 4
 
         ; for multiply long instructions, the opcode is longer
@@ -202,6 +253,15 @@ _test_error:
         sub r0, #8
         set_word r2, MEM_ROM + _shift_text
         add r2, r8, lsl #2
+
+        ldr r5, [r2]
+        str r5, [r6]
+        add r6, #4
+
+        mov r5, ' '
+        orr r5, r5, lsl #8
+        orr r5, r5, lsl #16
+
         mov r3, #4
         bl draw_word
 
@@ -212,7 +272,7 @@ _test_error:
         mov r2, '2'
         bl draw_char
 
-        _draw_input:
+_draw_input:
 
         ; draw input text
         add r1, #8
@@ -233,6 +293,11 @@ _test_error:
                 bl draw_char
                 add r0, #32
                 ldmia sp!, { r2 }
+
+                ; write input value to eWRAM
+                str r2, [r6]
+                add r6, #4
+
                 bl draw_hex_value
                 add r4, #1
                 cmp r4, '2'
@@ -247,6 +312,11 @@ _test_error:
 
         add r0, #5 * 8
         mov r2, r10
+
+        ; write init CPSR to eWRAM
+        str r2, [r6]
+        add r6, #4
+
         bl draw_hex_value
 
         ; draw got text
@@ -268,6 +338,11 @@ _test_error:
                 bl draw_char
                 add r0, #32
                 ldmia sp!, { r2 }
+
+                ; report to eWRAM
+                str r2, [r6]
+                add r6, #4
+
                 bl draw_hex_value
                 add r4, #1
                 cmp r4, '4'
@@ -282,6 +357,11 @@ _test_error:
 
         add r0, #5 * 8
         mov r2, r11
+
+        ; report to eWRAM
+        str r2, [r6]
+        add r6, #4
+
         bl draw_hex_value
 
         ; draw Expected text
@@ -303,6 +383,11 @@ _test_error:
                 bl draw_char
                 add r0, #32
                 ldmia sp!, { r2 }
+
+                ; report to eWRAM
+                str r2, [r6]
+                add r6, #4
+
                 bl draw_hex_value
                 add r4, #1
                 cmp r4, '4'
@@ -317,6 +402,10 @@ _test_error:
 
         add r0, #5 * 8
         ldmia sp!, { r2 }
+
+        ; report to eWRAM
+        str r2, [r6]
+
         bl draw_hex_value
 
         set_word r0, KEYINPUT
@@ -376,6 +465,31 @@ _got_text:
 
 _expected_text:
         dw 'Expe', 'cted', ':   '
+
+_write_opcode_multiply:
+        set_word r5, 'l   '
+        ; set l to space for non multiply long instructions
+        cmp r7, #18
+        addlt r5, ' ' - 'l'
+
+        str r5, [r6]
+        add r6, #4
+        ; set l to space if not done already
+        addge r5, ' ' - 'l'
+        str r5, [r6]
+        add r6, #4
+
+        b _write_opcode_return
+
+_write_opcode_load_store:
+        ldr r5, [r2, #4]
+        str r5, [r6]
+        add r6, #4
+        ldr r5, [r2, #8]
+        str r5, [r6]
+        add r6, #4
+
+        b _write_opcode_return
 
 
 
