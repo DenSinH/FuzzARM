@@ -16,7 +16,7 @@ The only libraries I used are `random`, `numpy` and `subprocess`. I think these 
 ### ROM running requirements:
 If you are building an emulator, I wrote this so that it can be ran from the very early stages of emulation. It uses rendering mode 4 to display the results, so you will need that. Other than that, I do _not_ use any SWIs/DMAs/Timers/IRQs/Weird IO registers (Only `DISPCNT` and `KEYINPUT`). You should be fine having most the basic instructions implemented, I use conditional operations, branches, arithmetic operations, and PSR transfers, but that should be about it. 
 
-I think these ROMs should be very useful for debugging purposes, as they do not have any timing requirements, as mentioned above. If the ROM doesn't run _at all_ on your emulator, you should be able to copmare logs with established emulators like mGBA or Nanoboy Advance (though mGBA does not always pass apparently, VBA doesn't either).
+I think these ROMs should be very useful for debugging purposes, as they do not have any timing requirements, as mentioned above. If the ROM doesn't run _at all_ on your emulator, you should be able to compare logs with established emulators like mGBA or Nanoboy Advance (VBA does not always pass apparently).
 
 ### The ROM in the repo:
 There is a ROM in the repo (`main.gba`). This ROM holds 10000 randomly generated tests for ARM/THUMB mode and all things it can possibly test. If you do not want to generate more ROMs yourself, you can simply download that one.
@@ -35,7 +35,7 @@ Once there are no more tests failing, "End of testing" will be displayed as well
 #### The data processing tests work as follows:
   - r1 is shifted by r2 with the proper shift type, and stored in r3
   - r0 and r3 are operated upon, and stored in r4
-#### Note: this causes `ADC`/`SBC`/`RSC` behavior to be off: in the tests, the operation uses the _new_ value for C (after the shifting operation), while it should use the _old_ value of C. A working emulator or hardware, should still pass the tests, because I account for this difference in generating the ROM!
+#### Note: I 'retransfer' the initial CPSR flags for `ADC`/`SBC`/`RSC`, because those need the _old_ value of C to operate upon.
 #### The multiplication instructions work as follows:
   - no register is shifted
   - r0, r1 are operated upon, and the result is stored in r3 (and r4 in case of a `MULL/MLAL` instruction)

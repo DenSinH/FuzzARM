@@ -38,6 +38,7 @@ def DataProcessing(opcode: int, r0: int, r1: int, r2: int, shift_type: int, N, Z
     :return:
     """
     registers = np.array([r0, r1, r2, r1, r0], dtype=np.uint32)
+    oldC = C
 
     # r3 = mov r1, shift_type, #r2
     if registers[2] != 0:
@@ -105,14 +106,14 @@ def DataProcessing(opcode: int, r0: int, r1: int, r2: int, shift_type: int, N, Z
         result = registers[4] = registers[0] + registers[3]
         C, V = get_CV_add(registers[0], registers[3], registers[4])
     elif opcode == 0b0101:      # ADC
-        result = registers[4] = np.uint32(registers[0] + registers[3] + C)
-        C, V = get_CV_add_C(registers[0], registers[3], C, registers[4])
+        result = registers[4] = np.uint32(registers[0] + registers[3] + oldC)
+        C, V = get_CV_add_C(registers[0], registers[3], oldC, registers[4])
     elif opcode == 0b0110:      # SBC
-        result = registers[4] = np.uint32(registers[0] - (registers[3] + 1 - C))
-        C, V = get_CV_sub_C(registers[0], registers[3], C, registers[4])
+        result = registers[4] = np.uint32(registers[0] - (registers[3] + 1 - oldC))
+        C, V = get_CV_sub_C(registers[0], registers[3], oldC, registers[4])
     elif opcode == 0b0111:      # RSC
-        result = registers[4] = np.uint32(registers[3] - (registers[0] + 1 - C))
-        C, V = get_CV_sub_C(registers[3], registers[0], C, registers[4])
+        result = registers[4] = np.uint32(registers[3] - (registers[0] + 1 - oldC))
+        C, V = get_CV_sub_C(registers[3], registers[0], oldC, registers[4])
     elif opcode == 0b1000:      # TST
         result = np.uint32(registers[0] & registers[3])
     elif opcode == 0b1001:      # TEQ
