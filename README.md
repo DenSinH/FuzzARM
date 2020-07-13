@@ -20,7 +20,9 @@ I think these ROMs should be very useful for debugging purposes, as they do not 
 
 #### The eWRAM dump:
 Below is an example for the eWRAM dump for a failed test (VBA does not pass signed multiplication tests):
-![VBA SMULL faillure](https://github.com/DenSinH/FuzzARM/blob/master/Screenshots/VBA%20smull%20error.png)
+
+<img src="https://github.com/DenSinH/FuzzARM/blob/master/Screenshots/VBA%20smull%20error.png" alt="VBA smull faillure" width="50%">
+
 It dumps the results in the following format (also described in `/asm/run_tests.asm`:
 ```
 1 word:  ['AAAA' OR 'TTTT'] for ARM or THUMB state
