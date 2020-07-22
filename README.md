@@ -20,7 +20,9 @@ I think these ROMs should be very useful for debugging purposes, as they do not 
 
 #### The eWRAM dump:
 Below is an example for the eWRAM dump for a failed test (VBA does not pass signed multiplication tests):
-![VBA SMULL faillure](https://github.com/DenSinH/FuzzARM/blob/master/Screenshots/VBA%20smull%20error.png)
+
+<img src="https://github.com/DenSinH/FuzzARM/blob/master/Screenshots/VBA%20smull%20error.png" alt="VBA smull faillure" width="50%">
+
 It dumps the results in the following format (also described in `/asm/run_tests.asm`:
 ```
 1 word:  ['AAAA' OR 'TTTT'] for ARM or THUMB state
@@ -36,7 +38,7 @@ It dumps the results in the following format (also described in `/asm/run_tests.
 1 word:  [expected r4]
 1 word:  [expected CPSR]
 ```
-So the opcode format is for example `tst lsl     `, or `smull       `, or `strh/ldrsh   `.
+So the opcode format is for example `tst lsl     `, or `smull       `, or `strh/ldrsh   `, padded with spaces to make it of length 12.
 
 ### The ROM in the repo:
 There is a ROM in the repo (`main.gba`). This ROM holds 10000 randomly generated tests for ARM/THUMB mode and all things it can possibly test. If you do not want to generate more ROMs yourself, you can simply download that one.
@@ -60,7 +62,7 @@ Once there are no more tests failing, "End of testing" will be displayed as well
 #### Note: I 'retransfer' the initial CPSR flags for `ADC`/`SBC`/`RSC`, because those need the _old_ value of C to operate upon.
 #### The multiplication instructions work as follows:
   - no register is shifted
-  - r0, r1 are operated upon, and the result is stored in r3 (and r4 in case of a `MULL/MLAL` instruction)
+  - r0, r1 are operated upon, and the result is stored in r4 (and r3 in case of a `MULL/MLAL` instruction)
   
 #### The load/store instructions work as follows:
   - no register is shifted
