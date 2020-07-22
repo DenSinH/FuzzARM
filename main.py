@@ -26,7 +26,7 @@ executable = {
 if sys.platform not in executable:
     raise OSError("OS not supported")
 
-if "linux" in sys.platform or True:
+if "linux" in sys.platform:
     print("chmod +x ./FASMARM/fasmarm")
     chmod = sp.run("chmod +x ./FASMARM/fasmarm")
     if chmod.stdout:
