@@ -4,6 +4,7 @@ from lib.LoadStore import LoadStore
 
 import random
 import numpy as np
+import sys
 
 """
 Format for tests.inc file:
@@ -44,6 +45,11 @@ def generate(
 ):
     if seed:
         random.seed(seed)
+    else:
+        seed = random.randrange(sys.maxsize)
+        random.seed(seed)
+
+    print(f"    Seeded generator with   {seed}")
 
     if number_of_tests < 1:
         raise ValueError(f"Cannot generate less than 1 test")
@@ -52,19 +58,31 @@ def generate(
     ARM_OPCODES = []
 
     if do_data_processing:
+        print("    Data processing tests   enabled")
         THUMB_OPCODES += VALID_THUMB_DATA_PROCESSING
         ARM_OPCODES += VALID_ARM_DATA_PROCESSING
+    else:
+        print("    Data processing tests   disabled")
 
     if do_multiply:
+        print("    Multiply tests          enabled")
         THUMB_OPCODES += VALID_THUMB_MULTIPLY
         ARM_OPCODES += VALID_ARM_MULTIPLY
+    else:
+        print("    Multiply tests          disabled")
 
     if do_load_store:
+        print("    Load/store tests        enabled")
         THUMB_OPCODES += VALID_THUMB_LOAD_STORE
         ARM_OPCODES += VALID_ARM_LOAD_STORE
+    else:
+        print("    Load/store tests        disabled")
 
     if not THUMB_OPCODES or not ARM_OPCODES:
         raise ValueError("Cannot generate tests if there are no modes selected")
+
+    # very professional string padding
+    print(f"    THUMB tests             {do_thumb_mode}")
 
     tests = "; assortment of randomly generated tests\nalign 4\ntests:\n        dw {0:#010x}".format(number_of_tests)
     test_set = set()

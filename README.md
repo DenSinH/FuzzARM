@@ -6,7 +6,32 @@ I plan on making it optional to add certain tests (for example, adding only THUM
 *Disclaimer* I do not own [FASMARM](https://arm.flatassembler.net/) in any way shape or form, nor have I contributed to it. I merely use it in this project to compile the generated .asm ROMS.
 
 ### Generating a ROM:
-Running `main.py` will prompt you with a question for how many tests you want, you can give any value greater than or equal to 1. Note that you will have to make sure that the ROM size will not get too big, so you should not do over about ~1600000 tests (I did about 1000 for testing this script, that should be enough really, but if you really want you can add way more)
+You can generate a ROM in 2 ways:
+  - *From the command line* You can generate a ROM from the command line. This way gives you more options, you can select
+    instruction types to be tested, and if you want only, some or no THUMB mode tests. 
+    `py main.py -h` for more information:
+    ```
+    usage: main.py [-h] [-T {some,all,none}] [-nM] [-nD] [-nLS] [--S SEED] N
+    
+    A fuzzer for the Nintendo GameBoy Advance
+    
+    positional arguments:
+      N                   Number of tests to generate
+    
+    optional arguments:
+      -h, --help          show this help message and exit
+      -T {some,all,none}  Amount of THUMB mode tests to generate, choose from 'some', 'all' or 'none'
+      -nM                 Disable multiply tests
+      -nD                 Disable data processing tests
+      -nLS                Disable load/store tests
+      --S SEED            Seed to seed the generator with
+    
+    ```
+ - *Double clicking* If you double click `main.py` (with python installed on your system, and a python executable in the PATH), 
+    you will be prompted with how many tests you want to generate. Enter a valid number, and this many tests of all types will be generated.
+    To disable tests, use the command line option described above.
+
+As for the number of tests: you can give any value greater than or equal to 1. Note that you will have to make sure that the ROM size will not get too big, so you should not do over about ~1600000 tests (I did about 1000 for testing this script, that should be enough really, but if you really want you can add way more)
 
 After this, the script will finish running and make a `main.gba` file in the same folder, or overwrite the file with that name if it exists.
 
@@ -40,8 +65,13 @@ It dumps the results in the following format (also described in `/asm/run_tests.
 ```
 So the opcode format is for example `tst lsl     `, or `smull       `, or `strh/ldrsh   `, padded with spaces to make it of length 12.
 
-### The ROM in the repo:
-There is a ROM in the repo (`main.gba`). This ROM holds 10000 randomly generated tests for ARM/THUMB mode and all things it can possibly test. If you do not want to generate more ROMs yourself, you can simply download that one.
+### The ROMS in the repo:
+If you don't want to generate ROMs yourself, I generated a few for you!
+  - `ARM_DataProcessing.gba`: 10000 ARM mode Data Processing type tests.
+  - `ARM_Any.gba`: 10000 ARM mode tests of all types.
+  - `THUMB_DataProcessing.gba`: 10000 THUMB mode Data Processing type tests.
+  - `THUMB_Any.gba`: 10000 THUMB mode tests of any type.
+  - `FuzzARM.gba`: 10000 tests of any mode and of any type.
 
 ### Output:
 If you pass all tests, the ROM will display "End of testing" right away.

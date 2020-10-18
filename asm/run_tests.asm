@@ -220,9 +220,7 @@ _draw_operands:
         addge r0, #2 * 8
 
         ; draw operands
-        ; overshoot the operand location because we correct for it later when checking
-        ; for multiply long instructions
-        set_word r2, MEM_ROM + _op_text + 4
+        set_word r2, MEM_ROM + _op_text
         mov r3, #12
         ; some opcodes don't have a destination register
         and r4, r7, #0xc
@@ -231,16 +229,16 @@ _draw_operands:
 
         ; multiply opcodes have different operands
         tst r7, #0x10
-        addne r2, #4 * 4
+        addne r2, #_op_text_multiply - _op_text + 4  ; omit first operand, added for long multiplies
+        subne r3, #2  ; remove the comma at the end
 
         ; accumulate multiplies have an extra operand
         tstne r7, #0x1
         addne r3, #4
 
-        ; non-long multiplies do not have the first operand
+        ; long multiplies have an extra first operand
         cmp r7, #18
-        sublt r2, #4
-        addge r3, #4
+        subge r2, #4
 
         bl draw_word
 
@@ -449,7 +447,8 @@ _opcode_load_store_text:
 
 _op_text:
         dw 'r4, ', 'r0, ', 'r1  ', '    '          ; for data processing
-        dw 'r4, ', 'r3, ', 'r0, ', 'r1, ', 'r2  '  ; for multiply
+_op_text_multiply:
+        dw 'r3, ', 'r4, ', 'r0, ', 'r1, ', 'r2  '  ; for multiply
 
 _shift_text:
         dw 'lsl ', 'lsr ', 'asr ', 'ror '
