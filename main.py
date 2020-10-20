@@ -6,13 +6,25 @@ import sys
 import argparse
 from pprint import pprint
 
+executable = {
+    "win32": "FASMARM.EXE",
+    "linux": "fasmarm",
+    "linux2": "fasmarm",
+    "darwin": "fasmarm.o",
+}
+
+if sys.platform not in executable:
+    raise OSError("OS not supported: '%s'", sys.platform)
+
+root = Path(sys.path[0])
+
 parser = argparse.ArgumentParser(description="A fuzzer for the Nintendo GameBoy Advance")
 parser.add_argument(
     "number_of_tests",
     metavar="N",
     type=int,
     nargs=None,
-    help="Number of tests to generate"
+    help="Number of tests to generate",
 )
 
 parser.add_argument(
@@ -20,7 +32,7 @@ parser.add_argument(
     dest="do_thumb_mode",
     help="Amount of THUMB mode tests to generate, choose from 'some', 'all' or 'none'",
     type=str.lower,
-    choices=["some", "all", "none"]
+    choices=["some", "all", "none"],
 )
 
 parser.add_argument(
@@ -34,7 +46,7 @@ parser.add_argument(
     "-nD",
     help="Disable data processing tests",
     dest="do_data_processing",
-    action="store_false"
+    action="store_false",
 )
 
 parser.add_argument(
@@ -73,28 +85,18 @@ else:
     print("To omit certain types of tests, use the command line options ('-h' or '-help' for more information)")
 
 
-with open("./asm/tests.inc", "w+") as f:
+with open(root / "asm/tests.inc", "w+") as f:
     f.write(generate(number_of_tests, **args))
-
-executable = {
-    "win32": "FASMARM.EXE",
-    "linux": "fasmarm",
-    "linux2": "fasmarm",
-    "darwin": "fasmarm.o",
-}
-
-if sys.platform not in executable:
-    raise OSError("OS not supported: '%s'", sys.platform)
 
 completed_process = sp.run(
     [
-        f"./FASMARM/{executable[sys.platform]}",
-        str(Path("./asm/main.asm").absolute()),
-        str(Path("main.gba").absolute()),
+        root / f"FASMARM/{executable[sys.platform]}",
+        root / "asm/main.asm",
+        root / "main.gba",
     ]
 )
 
 if completed_process.returncode != 0 or completed_process.stderr:
     raise Exception(completed_process.stderr)
 
-print(f"Output ROM to {Path('main.gba').absolute()}")
+print(f"Output ROM to {root / 'main.gba'}")
