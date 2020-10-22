@@ -131,16 +131,22 @@ _test_error:
 
         ; we store the failed test data as follows:
         ; 1 word:  ['AAAA' OR 'TTTT'] for ARM or THUMB state
-        ; 3 words: [opcode + shift] OR [multiplication opcode] OR [store opcode/load opcode]
+        ; 2 words: [opcode + shift] OR [multiplication opcode] OR [store opcode/load opcode]
+        ; 1 word:  [????]
+        ;
         ; 1 word:  [initial r0]
         ; 1 word:  [initial r1]
         ; 1 word:  [initial r2]
         ; 1 word:  [initial CPSR]
+        ;
         ; 1 word:  [gotten  r3]
         ; 1 word:  [gotten  r4]
+        ; 1 word:  [0000 0000]
         ; 1 word:  [gotten  CPSR]
+        ;
         ; 1 word:  [expected r3]
         ; 1 word:  [expected r4]
+        ; 1 word:  [0000 0000]
         ; 1 word:  [expected CPSR]
 
 _draw_failed_test:
@@ -259,6 +265,8 @@ _draw_operands:
         mov r5, ' '
         orr r5, r5, lsl #8
         orr r5, r5, lsl #16
+        str r5, [r6]
+        add r6, #4
 
         mov r3, #4
         bl draw_word
@@ -356,6 +364,7 @@ _draw_input:
         add r0, #5 * 8
         mov r2, r11
 
+        add r6, #4
         ; report to eWRAM
         str r2, [r6]
         add r6, #4
@@ -402,6 +411,7 @@ _draw_input:
         ldmia sp!, { r2 }
 
         ; report to eWRAM
+        add r6, #4
         str r2, [r6]
 
         bl draw_hex_value

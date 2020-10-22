@@ -51,16 +51,22 @@ Below is an example for the eWRAM dump for a failed test (VBA does not pass sign
 It dumps the results in the following format (also described in `/asm/run_tests.asm`:
 ```
 1 word:  ['AAAA' OR 'TTTT'] for ARM or THUMB state
-3 words: [opcode + shift] OR [multiplication opcode] OR [store opcode/load opcode]
+2 words: [opcode + shift] OR [multiplication opcode] OR [store opcode/load opcode]
+1 word:  [????]
+
 1 word:  [initial r0]
 1 word:  [initial r1]
 1 word:  [initial r2]
 1 word:  [initial CPSR]
+
 1 word:  [gotten  r3]
 1 word:  [gotten  r4]
+1 word:  [0000 0000]
 1 word:  [gotten  CPSR]
+
 1 word:  [expected r3]
 1 word:  [expected r4]
+1 word:  [0000 0000]
 1 word:  [expected CPSR]
 ```
 So the opcode format is for example `tst lsl     `, or `smull       `, or `strh/ldrsh   `, padded with spaces to make it of length 12.
