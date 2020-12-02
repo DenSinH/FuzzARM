@@ -95,7 +95,18 @@ Once there are no more tests failing, "End of testing" will be displayed as well
 #### The data processing tests work as follows:
   - r1 is shifted by r2 with the proper shift type, and stored in r3
   - r0 and r3 are operated upon, and stored in r4
+#### Note: This means that the tests are _not_ exactly the way they are output, in the sense that:
+  ```ARMASM
+  add r4, r0, r1, lsl r2
+  ```
+  is in fact
+  ```ARMASM
+  mov r3, r1, lsl r2
+  add r4, r0, r3
+  ```
 #### Note: I 'retransfer' the initial CPSR flags for `ADC`/`SBC`/`RSC`, because those need the _old_ value of C to operate upon.
+This means that inbetween the shift and the `lsl`, for these ops, there is another `msr` instruction to produce the correct result.
+
 #### The multiplication instructions work as follows:
   - no register is shifted
   - r0, r1 are operated upon, and the result is stored in r4 (and r3 in case of a `MULL/MLAL` instruction)
