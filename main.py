@@ -90,9 +90,9 @@ with open(root / "asm/tests.inc", "w+") as f:
 
 completed_process = sp.run(
     [
-        root / f"FASMARM/{executable[sys.platform]}",
-        root / "asm/main.asm",
-        root / "main.gba",
+        str(root / f"FASMARM/{executable[sys.platform]}"),
+        str(root / "asm/main.asm"),
+        str(root / "main.gba"),
     ]
 )
 
